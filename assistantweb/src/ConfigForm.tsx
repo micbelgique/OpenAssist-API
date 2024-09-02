@@ -21,14 +21,14 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
 }) => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    onSubmit(); // Directly call the parent's onSubmit to finalize the form and fetch messages
+    onSubmit();
   };
 
   return (
     <div className="form-container">
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="config-form">
         <label>
-          API Key:
+          <span>API Key:</span>
           <input
             type="text"
             value={apiKey}
@@ -37,7 +37,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
           />
         </label>
         <label>
-          Thread ID:
+          <span>Thread ID:</span>
           <input
             type="text"
             value={threadId}
@@ -46,7 +46,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
           />
         </label>
         <label>
-          Assistant ID:
+          <span>Assistant ID:</span>
           <input
             type="text"
             value={assistantId}
