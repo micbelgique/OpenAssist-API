@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface ConfigFormProps {
   apiKey: string;
@@ -25,37 +25,45 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
   };
 
   return (
-    <div className="form-container">
-      <form onSubmit={handleSubmit} className="config-form">
-        <label>
-          <span>API Key:</span>
-          <input
-            type="text"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          <span>Thread ID:</span>
-          <input
-            type="text"
-            value={threadId}
-            onChange={(e) => setThreadId(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          <span>Assistant ID:</span>
-          <input
-            type="text"
-            value={assistantId}
-            onChange={(e) => setAssistantId(e.target.value)}
-          />
-        </label>
-        <button type="submit">Submit</button>
-      </form>
-    </div>
+    <>
+      <div className="container"><h1>OpenAssist</h1></div>
+      <div className="container">
+        <div className="image-container">
+          <img src="public/OpenAssist.png" alt="OpenAssist" />
+        </div>
+        <div className="form-container">
+          <form onSubmit={handleSubmit} className="config-form">
+            <label>
+              <span>API Key:</span>
+              <input
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              <span>Thread ID:</span>
+              <input
+                type="text"
+                value={threadId}
+                onChange={(e) => setThreadId(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              <span>Assistant ID:</span>
+              <input
+                type="text"
+                value={assistantId}
+                onChange={(e) => setAssistantId(e.target.value)}
+              />
+            </label>
+            <button type="submit">Submit</button>
+          </form>
+        </div>
+      </div>
+    </>
   );
 };
 

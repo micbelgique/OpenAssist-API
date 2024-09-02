@@ -13,20 +13,45 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  justify-content: center;
   min-width: 320px;
   min-height: 100vh;
+  display: flex;
+  justify-content: center; /* Center the container horizontally */
+  align-items: center; /* Center the container vertically */
+  background-color: #242424; /* Ensure the background color is consistent */
+}
+
+.container {
+  display: flex; 
+  align-items: center; 
+  gap: 2rem; 
+  margin: 3.5rem auto;
+  justify-content: center; 
+}
+
+.image-container {
+  flex: 1; /* Allow image container to take some space */
+  display: flex; /* Make image container a flexbox */
+  justify-content: center; /* Center the image */
+}
+
+.image-container img {
+  max-width: 100%; /* Make sure the image is responsive */
+  height: auto; /* Maintain aspect ratio */
+  border-radius: 10px; /* Optional: Add rounded corners */
 }
 
 .form-container {
+  flex: 1; /* Allow form container to take the remaining space */
   background-color: #333;
   padding: 2rem;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   max-width: 400px;
   width: 100%;
+  display: flex; /* Make form container a flexbox */
+  flex-direction: column; /* Arrange children in a column */
+  justify-content: center; /* Center form contents vertically */
 }
 
 .config-form label {
