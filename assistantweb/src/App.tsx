@@ -131,21 +131,19 @@ function App() {
           },
         }
       );
-
       const runStatus = response.data.status;
-
       if (runStatus === "completed") {
         fetchMessages();
-        setIsLoading(false); // Stop loading when the run is completed
+        setIsLoading(false); 
       } else if (runStatus === "failed" || runStatus === "expired") {
         console.error("Le run a échoué ou a expiré.");
-        setIsLoading(false); // Stop loading if run failed or expired
+        setIsLoading(false); 
       } else {
         setTimeout(() => checkRunStatus(runId), 1000);
       }
     } catch (error) {
       console.error("Erreur lors de la vérification du statut du run:", error);
-      setIsLoading(false); // Stop loading on error
+      setIsLoading(false); 
     }
   };
 
@@ -233,7 +231,7 @@ function App() {
                       display: "flex",
                       justifyContent:
                         message.role === "user" ? "flex-end" : "flex-start",
-                      mb: 1, // Optionnel : espace entre les messages
+                      mb: 1, 
                     }}
                   >
                     <ListItemText
@@ -274,11 +272,11 @@ function App() {
             sx={{
               display: "flex",
               alignItems: "center",
-              padding: 2, // Augmentez le padding pour un meilleur espace
+              padding: 2, 
               backgroundColor: "#2f2f2f",
               borderRadius: 2, 
               boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)", 
-              marginBottom: 2, // Ajoute un espace entre le champ de texte et le bas de la fenêtre
+              marginBottom: 2, 
             }}
           >
               <TextField
@@ -297,11 +295,11 @@ function App() {
               color="primary"
               type="submit"
               sx={{
-                borderRadius: 1, // Coins arrondis pour le bouton
-                padding: '8px 16px', // Ajuste le padding pour un meilleur aspect
-                marginLeft: 2, // Ajoute un espace entre le champ de texte et le bouton
+                borderRadius: 1, 
+                padding: '8px 16px', 
+                marginLeft: 2, 
                 width: 100,
-                backgroundColor: "#646cff" // Ajuste la largeur du bouton
+                backgroundColor: "#646cff" 
               }}
             >
               <NorthIcon/>

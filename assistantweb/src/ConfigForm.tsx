@@ -43,6 +43,14 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
               />
             </label>
             <label>
+              <span>Assistant ID:</span>
+              <input
+                type="text"
+                value={assistantId}
+                onChange={(e) => setAssistantId(e.target.value)}
+              />
+            </label>
+            <label>
               <span>Thread ID:</span>
               <input
                 type="text"
@@ -51,15 +59,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
                 required
               />
             </label>
-            <label>
-              <span>Assistant ID:</span>
-              <input
-                type="text"
-                value={assistantId}
-                onChange={(e) => setAssistantId(e.target.value)}
-              />
-            </label>
-            <button type="submit">Submit</button>
+            <button type="submit">Envoyer</button>
           </form>
         </div>
       </div>
