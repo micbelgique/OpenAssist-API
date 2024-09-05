@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import axios from "axios";
 import {
   Box,
@@ -13,7 +14,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import ConfigForm from "./ConfigForm";
-import NorthIcon from '@mui/icons-material/North';
+import NorthIcon from "@mui/icons-material/North";
 
 function App() {
   interface Message {
@@ -134,16 +135,16 @@ function App() {
       const runStatus = response.data.status;
       if (runStatus === "completed") {
         fetchMessages();
-        setIsLoading(false); 
+        setIsLoading(false);
       } else if (runStatus === "failed" || runStatus === "expired") {
         console.error("Le run a échoué ou a expiré.");
-        setIsLoading(false); 
+        setIsLoading(false);
       } else {
         setTimeout(() => checkRunStatus(runId), 1000);
       }
     } catch (error) {
       console.error("Erreur lors de la vérification du statut du run:", error);
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   };
 
@@ -196,8 +197,12 @@ function App() {
       ) : (
         <>
           {/* "OpenAssist" button to reset all variables */}
-          <Typography variant="h6" onClick={resetAll} sx={{ cursor: "pointer", marginBottom: 2 }}>
-            OpenAssist
+          <Typography
+            variant="h6"
+            onClick={resetAll}
+            sx={{ cursor: "pointer", marginBottom: 2,marginLeft:5 }}
+          >
+            <h2>OpenAssist</h2>
           </Typography>
           <Box
             sx={{
@@ -214,7 +219,7 @@ function App() {
             square
           >
             <List
-              sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1 }}
+              sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1,margin:5  }}
             >
               {messages.map((message) => (
                 <ListItem
@@ -231,13 +236,14 @@ function App() {
                       display: "flex",
                       justifyContent:
                         message.role === "user" ? "flex-end" : "flex-start",
-                      mb: 1, 
+                      margin: 1,
                     }}
                   >
                     <ListItemText
                       primary={
                         <Typography
                           variant="body1"
+                          component="div" // Permet d'afficher le Markdown comme du HTML
                           sx={{
                             backgroundColor:
                               message.role === "user" ? "#646cff" : "#333333",
@@ -245,11 +251,14 @@ function App() {
                             borderRadius: "12px",
                             maxWidth: "80%",
                             wordWrap: "break-word",
-                            color: message.role === "user" ? "#fff" : "#fff",
+                            color: "#fff",
                           }}
                         >
-                          {message.content?.[0]?.text?.value ||
-                            "Message indisponible"}
+                          {/* Utilisation de ReactMarkdown pour afficher le contenu Markdown */}
+                          <ReactMarkdown>
+                            {message.content?.[0]?.text?.value ||
+                              "Message indisponible"}
+                          </ReactMarkdown>
                         </Typography>
                       }
                     />
@@ -267,45 +276,44 @@ function App() {
             </Box>
           ) : (
             <Box
-            component="form"
-            onSubmit={handleSubmitMessage}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              padding: 2, 
-              backgroundColor: "#2f2f2f",
-              borderRadius: 2, 
-              boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)", 
-              marginBottom: 2, 
-            }}
-          >
-              <TextField
-              variant="outlined"
-              placeholder="Message OpenAssist"
-              fullWidth
-              value={userMessage}
-              onChange={(e) => setUserMessage(e.target.value)}              
+              component="form"
+              onSubmit={handleSubmitMessage}
               sx={{
-                borderRadius: 1, 
-                input: { color: 'white' }
-              }}
-            />
-            <Button
-              variant="contained"
-              color="primary"
-              type="submit"
-              sx={{
-                borderRadius: 1, 
-                padding: '8px 16px', 
-                marginLeft: 2, 
-                width: 100,
-                backgroundColor: "#646cff" 
+                display: "flex",
+                alignItems: "center",
+                padding: 2,
+                backgroundColor: "#2f2f2f",
+                borderRadius: 2,
+                boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
+                margin: 3,
               }}
             >
-              <NorthIcon/>
-            </Button>
-          </Box>
-          
+              <TextField
+                variant="outlined"
+                placeholder="Message OpenAssist"
+                fullWidth
+                value={userMessage}
+                onChange={(e) => setUserMessage(e.target.value)}
+                sx={{
+                  borderRadius: 1,
+                  input: { color: "white" },
+                }}
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+                sx={{
+                  borderRadius: 1,
+                  padding: "8px 16px",
+                  marginLeft: 2,
+                  width: 100,
+                  backgroundColor: "#646cff",
+                }}
+              >
+                <NorthIcon />
+              </Button>
+            </Box>
           )}
         </>
       )}
