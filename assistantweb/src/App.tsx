@@ -33,7 +33,7 @@ function App() {
   const [assistantId, setAssistantId] = useState<string>("");
   const [isFormVisible, setFormVisible] = useState<boolean>(true);
   const [userMessage, setUserMessage] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false); // Add loading state
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [runId, setRunId] = useState<string | null>(null);
 
@@ -92,14 +92,21 @@ function App() {
     }
   };
 
-  const runThread = async () => {
-    if (!apiKey || !threadId || !assistantId) return;
+  // Updated function to create and run thread
+  const createThreadAndRun = async () => {
+    if (!apiKey || !assistantId) return;
 
+    setIsLoading(true); // Start loading
     try {
       const response = await axios.post(
-        `https://api.openai.com/v1/threads/${threadId}/runs`,
+        `https://api.openai.com/v1/threads/runs`,
         {
           assistant_id: assistantId,
+          thread: {
+            messages: [
+              { role: "user", content: "présente toi." }  // Initial message, can be customized
+            ]
+          }
         },
         {
           headers: {
@@ -110,11 +117,16 @@ function App() {
         }
       );
 
+      const newThreadId = response.data.thread_id;
       const newRunId = response.data.id;
-      setRunId(newRunId);
-      checkRunStatus(newRunId);
+      setThreadId(newThreadId); // Set new threadId
+      setRunId(newRunId); // Set new runId
+      checkRunStatus(newRunId); // Check run status
+      fetchMessages(); // Fetch messages after creating and running the thread
     } catch (error) {
-      console.error("Erreur lors de l'exécution du thread:", error);
+      console.error("Erreur lors de la création et l'exécution du thread:", error);
+    } finally {
+      setIsLoading(false); // End loading
     }
   };
 
@@ -148,22 +160,20 @@ function App() {
     }
   };
 
-  const handleSubmitConfig = () => {
+  const handleSubmitConfig = async () => {
     setFormVisible(false);
-    fetchMessages();
+    await createThreadAndRun();  // Create thread and run it when configuration is submitted
   };
 
   const handleSubmitMessage = async (event: React.FormEvent) => {
     event.preventDefault();
 
     await postMessage(userMessage);
-    await runThread();
     fetchMessages();
     setUserMessage("");
     setIsLoading(true);
   };
 
-  // Function to reset all variables
   const resetAll = () => {
     setMessages([]);
     setApiKey("");
@@ -196,11 +206,10 @@ function App() {
         />
       ) : (
         <>
-          {/* "OpenAssist" button to reset all variables */}
           <Typography
             variant="h6"
             onClick={resetAll}
-            sx={{ cursor: "pointer", marginBottom: 2,marginLeft:5 }}
+            sx={{ cursor: "pointer", marginBottom: 2, marginLeft: 5 }}
           >
             <h2>OpenAssist</h2>
           </Typography>
@@ -219,7 +228,7 @@ function App() {
             square
           >
             <List
-              sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1,margin:5  }}
+              sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, margin: 5 }}
             >
               {messages.map((message) => (
                 <ListItem
@@ -243,7 +252,7 @@ function App() {
                       primary={
                         <Typography
                           variant="body1"
-                          component="div" // Permet d'afficher le Markdown comme du HTML
+                          component="div"
                           sx={{
                             backgroundColor:
                               message.role === "user" ? "#646cff" : "#333333",
@@ -254,10 +263,8 @@ function App() {
                             color: "#fff",
                           }}
                         >
-                          {/* Utilisation de ReactMarkdown pour afficher le contenu Markdown */}
                           <ReactMarkdown>
-                            {message.content?.[0]?.text?.value ||
-                              "Message indisponible"}
+                            {message.content?.[0]?.text?.value || "Message indisponible"}
                           </ReactMarkdown>
                         </Typography>
                       }
@@ -265,7 +272,6 @@ function App() {
                   </Box>
                 </ListItem>
               ))}
-
               <div ref={messagesEndRef} />
             </List>
           </Box>
