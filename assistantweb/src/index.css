@@ -111,12 +111,20 @@ button:hover {
   border-color: #ffffff;
   background-color: #646cff;
 }
+button:disabled {
+  background-color: #646cff40;
+  color: #ffffff40;
+  cursor: not-allowed;
+}
+button:disabled:hover {
+  border-color: #646cff40;
+}
 
 .assistants-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 1px;
-  margin-top: 10px;
+  margin: 10px;
 }
 .assistant-button {
   padding: 15px 15px;

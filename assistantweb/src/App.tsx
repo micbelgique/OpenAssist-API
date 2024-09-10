@@ -29,13 +29,13 @@ function App() {
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [apiKey, setApiKey] = useState<string>("");
-  const [threadId, setThreadId] = useState<string>("");
   const [assistantId, setAssistantId] = useState<string>("");
   const [isFormVisible, setFormVisible] = useState<boolean>(true);
   const [userMessage, setUserMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [runId, setRunId] = useState<string | null>(null);
+  const [threadId, setThreadId] = useState<string>(""); // Now we initialize it here
 
   useEffect(() => {
     scrollToBottom();
@@ -43,6 +43,95 @@ function App() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const createThreadAndRun = async (): Promise<string | null> => {
+    if (!apiKey || !assistantId) return null;
+
+    setIsLoading(true); // Start loading
+    try {
+      const response = await axios.post(
+        `https://api.openai.com/v1/threads/runs`,
+        {
+          assistant_id: assistantId,
+          thread: {
+            messages: [
+              { role: "user", content: "présente toi." }, // Initial message, can be customized
+            ],
+          },
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "OpenAI-Beta": "assistants=v2",
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      const newThreadId = response.data.thread_id;
+      const newRunId = response.data.id;
+
+      // Set new threadId and runId
+      setThreadId(newThreadId);
+      setRunId(newRunId);
+
+      checkRunStatus(newRunId); // Check run status
+
+      return newThreadId; // Return new threadId for further use
+    } catch (error) {
+      console.error(
+        "Erreur lors de la création et l'exécution du thread:",
+        error
+      );
+      return null;
+    } finally {
+      setIsLoading(false); // End loading
+    }
+  };
+
+  const checkRunStatus = async (runId: string) => {
+    if (!apiKey || !threadId) return;
+
+    try {
+      const response = await axios.get(
+        `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "OpenAI-Beta": "assistants=v2",
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+
+      const runStatus = response.data.status;
+
+      if (runStatus === "completed") {
+        fetchMessages(); // Fetch messages only if the run is completed
+        setIsLoading(false); // End loading when completed
+      } else if (runStatus === "failed" || runStatus === "expired") {
+        console.error("Le run a échoué ou a expiré.");
+        setIsLoading(false); // End loading on failure or expiration
+      } else {
+        setTimeout(() => checkRunStatus(runId), 2000); // Retry after 2 seconds
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification du statut du run:", error);
+      setIsLoading(false); // Ensure loading stops on error
+    }
+  };
+
+  const handleSubmitConfig = async () => {
+    setFormVisible(false);
+    const newThreadId = await createThreadAndRun();
+    if (newThreadId) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      console.log("Thread ID créé:", newThreadId);
+      fetchMessages();
+    } else {
+      console.error("Erreur: Thread ID non créé.");
+    }
   };
 
   const fetchMessages = async () => {
@@ -69,9 +158,50 @@ function App() {
     }
   };
 
+
+  const runThreadAfterMessage = async () => {
+    if (!apiKey || !assistantId || !threadId) return;
+  
+    try {
+      setIsLoading(true); // Start loading
+  
+      const response = await axios.post(
+        `https://api.openai.com/v1/threads/${threadId}/runs`,
+        {
+          assistant_id: assistantId,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "OpenAI-Beta": "assistants=v2",
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+  
+      const newRunId = response.data.id; // Nouveau Run ID
+      setRunId(newRunId); // Mise à jour du Run ID
+      checkRunStatus(newRunId); // Vérifier le statut du run
+    } catch (error) {
+      console.error("Erreur lors de la création et l'exécution du run:", error);
+    }
+  };
+  
+
   const postMessage = async (messageContent: string) => {
     if (!apiKey || !threadId) return;
-
+  
+    // Ajoutez immédiatement le message de l'utilisateur aux messages
+    const userMessage = {
+      id: `temp-${Date.now()}`, // Un ID temporaire unique pour le message de l'utilisateur
+      role: "user",
+      content: [{ text: { value: messageContent } }],
+    };
+  
+    setMessages((prevMessages) => [...prevMessages, userMessage]);
+  
+    setIsLoading(true); // Start loading for the assistant's response
+  
     try {
       await axios.post(
         `https://api.openai.com/v1/threads/${threadId}/messages`,
@@ -87,92 +217,28 @@ function App() {
           },
         }
       );
+  
+      await runThreadAfterMessage(); 
+  
+    
+      await fetchMessages();
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
-    }
-  };
-
-  // Updated function to create and run thread
-  const createThreadAndRun = async () => {
-    if (!apiKey || !assistantId) return;
-
-    setIsLoading(true); // Start loading
-    try {
-      const response = await axios.post(
-        `https://api.openai.com/v1/threads/runs`,
-        {
-          assistant_id: assistantId,
-          thread: {
-            messages: [
-              { role: "user", content: "présente toi." }  // Initial message, can be customized
-            ]
-          }
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "OpenAI-Beta": "assistants=v2",
-            Authorization: `Bearer ${apiKey}`,
-          },
-        }
-      );
-
-      const newThreadId = response.data.thread_id;
-      const newRunId = response.data.id;
-      setThreadId(newThreadId); // Set new threadId
-      setRunId(newRunId); // Set new runId
-      checkRunStatus(newRunId); // Check run status
-      fetchMessages(); // Fetch messages after creating and running the thread
-    } catch (error) {
-      console.error("Erreur lors de la création et l'exécution du thread:", error);
     } finally {
-      setIsLoading(false); // End loading
+      setIsLoading(false); 
     }
   };
-
-  const checkRunStatus = async (runId: string) => {
-    if (!apiKey || !threadId) return;
-
-    try {
-      const response = await axios.get(
-        `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "OpenAI-Beta": "assistants=v2",
-            Authorization: `Bearer ${apiKey}`,
-          },
-        }
-      );
-      const runStatus = response.data.status;
-      if (runStatus === "completed") {
-        fetchMessages();
-        setIsLoading(false);
-      } else if (runStatus === "failed" || runStatus === "expired") {
-        console.error("Le run a échoué ou a expiré.");
-        setIsLoading(false);
-      } else {
-        setTimeout(() => checkRunStatus(runId), 1000);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la vérification du statut du run:", error);
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmitConfig = async () => {
-    setFormVisible(false);
-    await createThreadAndRun();  // Create thread and run it when configuration is submitted
-  };
+  
+  
 
   const handleSubmitMessage = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    await postMessage(userMessage);
     fetchMessages();
-    setUserMessage("");
-    setIsLoading(true);
+    event.preventDefault();
+    if (userMessage.trim() === "") return; // Prevent sending empty messages
+    await postMessage(userMessage); // Send the user message
+    setUserMessage(""); // Clear input after sending the message
   };
+  
 
   const resetAll = () => {
     setMessages([]);
@@ -197,10 +263,8 @@ function App() {
       {isFormVisible ? (
         <ConfigForm
           apiKey={apiKey}
-          threadId={threadId}
           assistantId={assistantId}
           setApiKey={setApiKey}
-          setThreadId={setThreadId}
           setAssistantId={setAssistantId}
           onSubmit={handleSubmitConfig}
         />
@@ -228,52 +292,70 @@ function App() {
             square
           >
             <List
-              sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 1, margin: 5 }}
-            >
-              {messages.map((message) => (
-                <ListItem
-                  key={message.id || Math.random()}
-                  sx={{
-                    display: "flex",
-                    justifyContent:
-                      message.role === "user" ? "flex-end" : "flex-start",
-                    padding: "10px 0",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent:
-                        message.role === "user" ? "flex-end" : "flex-start",
-                      margin: 1,
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Typography
-                          variant="body1"
-                          component="div"
-                          sx={{
-                            backgroundColor:
-                              message.role === "user" ? "#646cff" : "#333333",
-                            padding: "8px 12px",
-                            borderRadius: "12px",
-                            maxWidth: "80%",
-                            wordWrap: "break-word",
-                            color: "#fff",
-                          }}
-                        >
-                          <ReactMarkdown>
-                            {message.content?.[0]?.text?.value || "Message indisponible"}
-                          </ReactMarkdown>
-                        </Typography>
-                      }
-                    />
-                  </Box>
-                </ListItem>
-              ))}
-              <div ref={messagesEndRef} />
-            </List>
+  sx={{
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: 1,
+    margin: 5,
+  }}
+>
+  {/* Filtrer les messages pour exclure le premier message de l'utilisateur */}
+  {messages
+    .filter((message, index, array) => {
+      // Trouver le premier message de l'utilisateur
+      const firstUserMessageIndex = array.findIndex(
+        (msg) => msg.role === "user"
+      );
+      // Exclure le premier message de l'utilisateur de l'affichage
+      return !(message.role === "user" && index === firstUserMessageIndex);
+    })
+    .map((message) => (
+      <ListItem
+        key={message.id || Math.random()}
+        sx={{
+          display: "flex",
+          justifyContent:
+            message.role === "user" ? "flex-end" : "flex-start",
+          padding: "10px 0",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent:
+              message.role === "user" ? "flex-end" : "flex-start",
+            margin: 1,
+          }}
+        >
+          <ListItemText
+            primary={
+              <Typography
+                variant="body1"
+                component="div"
+                sx={{
+                  backgroundColor:
+                    message.role === "user" ? "#646cff" : "#333333",
+                  padding: "8px 12px",
+                  borderRadius: "12px",
+                  maxWidth: "80%",
+                  wordWrap: "break-word",
+                  color: "#fff",
+                }}
+              >
+                <ReactMarkdown>
+                  {message.content?.[0]?.text?.value ||
+                    "Message indisponible"}
+                </ReactMarkdown>
+              </Typography>
+            }
+          />
+        </Box>
+      </ListItem>
+    ))}
+  <div ref={messagesEndRef} />
+</List>
+
           </Box>
           <Divider />
           {isLoading ? (
@@ -318,6 +400,21 @@ function App() {
                 }}
               >
                 <NorthIcon />
+              </Button>
+
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={fetchMessages}
+                sx={{
+                  borderRadius: 1,
+                  padding: "8px 16px",
+                  marginLeft: 2,
+                  width: 100,
+                  backgroundColor: "#646cff",
+                }}
+              >
+                Refresh
               </Button>
             </Box>
           )}
