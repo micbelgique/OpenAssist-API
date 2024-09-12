@@ -47,7 +47,7 @@ function App() {
 
   const createThreadAndRun = async (): Promise<string | null> => {
     if (!apiKey || !assistantId) return null;
-  
+
     setIsLoading(true); // Start loading
     try {
       const response = await axios.post(
@@ -66,12 +66,12 @@ function App() {
           },
         }
       );
-  
+
       console.log("Response from thread creation:", response.data); // Debugging log
-  
+
       const newThreadId = response.data.thread_id;
       const newRunId = response.data.id;
-  
+
       if (newThreadId && newRunId) {
         setThreadId(newThreadId);
         setRunId(newRunId);
@@ -82,14 +82,17 @@ function App() {
         return null;
       }
     } catch (error) {
-      console.error("Erreur lors de la création et l'exécution du thread:", error);
+      console.error(
+        "Erreur lors de la création et l'exécution du thread:",
+        error
+      );
       return null;
     }
   };
-  
+
   const checkRunStatus = async (runId: string) => {
     if (!apiKey || !threadId) return;
-  
+
     try {
       const response = await axios.get(
         `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
@@ -101,9 +104,9 @@ function App() {
           },
         }
       );
-  
+
       const runStatus = response.data.status;
-  
+
       if (runStatus === "completed") {
         await fetchMessages(); // Fetch messages only once when completed
       } else if (runStatus === "failed" || runStatus === "expired") {
@@ -117,7 +120,6 @@ function App() {
       setIsLoading(false); // Always stop loading after check
     }
   };
-  
 
   const handleSubmitConfig = async () => {
     setFormVisible(false);
@@ -161,6 +163,20 @@ function App() {
     }
   };
 
+  //afficher les messages
+  const formatMessageContent = (content: string) => {
+    // Exemple de formatage simple. Adapte selon le format de tes références.
+    return content.replace(
+      /【(\d+):(\d+)†source】/g,
+      (match, docId, sectionId) => {
+        // Remplacer par une version lisible. Adapte cela en fonction de la structure des documents.
+        return ` (Document ${docId}, section ${sectionId})`;
+      }
+    );
+  };
+
+  
+
   const runThreadAfterMessage = async () => {
     if (!apiKey || !assistantId || !threadId) return;
 
@@ -191,16 +207,16 @@ function App() {
 
   const postMessage = async (messageContent: string) => {
     if (!apiKey || !threadId) return;
-  
+
     const userMessage = {
       id: `temp-${Date.now()}`,
       role: "user",
       content: [{ text: { value: messageContent } }],
     };
-  
+
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setIsLoading(true); // Start loading
-  
+
     try {
       await axios.post(
         `https://api.openai.com/v1/threads/${threadId}/messages`,
@@ -216,7 +232,7 @@ function App() {
           },
         }
       );
-  
+
       await runThreadAfterMessage();
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
@@ -224,15 +240,14 @@ function App() {
       setIsLoading(false); // End loading after all actions
     }
   };
-  
+
   const handleSubmitMessage = async (event: React.FormEvent) => {
     event.preventDefault();
     if (userMessage.trim() === "") return; // Prevent sending empty messages
-  
+
     await postMessage(userMessage); // Send the user message
     setUserMessage(""); // Clear input after sending the message
   };
-  
 
   const resetAll = () => {
     setMessages([]);
@@ -340,8 +355,10 @@ function App() {
                             }}
                           >
                             <ReactMarkdown>
-                              {message.content?.[0]?.text?.value ||
-                                "Message indisponible"}
+                              {formatMessageContent(
+                                message.content?.[0]?.text?.value ||
+                                  "Message indisponible"
+                              )}
                             </ReactMarkdown>
                           </Typography>
                         }

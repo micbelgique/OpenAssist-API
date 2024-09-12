@@ -5,7 +5,7 @@ interface ConfigFormProps {
   assistantId: string;
   setApiKey: (key: string) => void;
   setAssistantId: (id: string) => void;
-  onSubmit: () => void;
+  onSubmit: (vectorId: string | null) => void;
 }
 
 const ConfigForm: React.FC<ConfigFormProps> = ({
@@ -16,11 +16,12 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
   onSubmit,
 }) => {
   const [assistants, setAssistants] = useState<
-    { id: string; name: string | null }[]
+    { id: string; name: string | null; tool_resources?: { file_search?: { vector_store_ids?: string[] } } }[]
   >([]);
   const [isAssistantSelected, setIsAssistantSelected] = useState<boolean>(!!assistantId);
-
-  // Function to fetch assistants from the API
+  const [selectedVectorId, setSelectedVectorId] = useState<string | null>(null);
+  const [files, setFiles] = useState<{ id: string; created_at: number; vector_store_id: string }[]>([]);
+  
   const fetchAssistants = async () => {
     try {
       const response = await fetch(
@@ -41,8 +42,35 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
 
       const data = await response.json();
       setAssistants(data.data);
+      console.log("Assistants fetched:", data.data);
     } catch (error) {
       console.error("Error fetching assistants:", error);
+    }
+  };
+
+  const fetchFiles = async (vectorStoreId: string) => {
+    try {
+      const response = await fetch(
+        `https://api.openai.com/v1/vector_stores/${vectorStoreId}/files`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "OpenAI-Beta": "assistants=v2",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch files");
+      }
+
+      const data = await response.json();
+      setFiles(data.data);
+      console.log("Files fetched:", data.data);
+    } catch (error) {
+      console.error("Error fetching files:", error);
     }
   };
 
@@ -56,9 +84,33 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
     setIsAssistantSelected(!!assistantId);
   }, [assistantId]);
 
+  useEffect(() => {
+    if (selectedVectorId) {
+      fetchFiles(selectedVectorId);
+    } else {
+      setFiles([]);
+    }
+  }, [selectedVectorId]);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    onSubmit();
+    onSubmit(selectedVectorId);
+  };
+
+  const handleAssistantSelect = (assistant: {
+    id: string;
+    name: string | null;
+    tool_resources?: { file_search?: { vector_store_ids?: string[] } };
+  }) => {
+    setAssistantId(assistant.id);
+    if (assistant.tool_resources?.file_search?.vector_store_ids && assistant.tool_resources.file_search.vector_store_ids.length > 0) {
+      const vectorId = assistant.tool_resources.file_search.vector_store_ids[0];
+      setSelectedVectorId(vectorId);
+      console.log("First Vector Store ID of the selected assistant:", vectorId);
+    } else {
+      setSelectedVectorId(null);
+      console.log("Vector Store ID information is not available for the selected assistant.");
+    }
   };
 
   return (
@@ -87,7 +139,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
                     className={`assistant-button ${
                       assistantId === assistant.id ? "selected" : ""
                     }`}
-                    onClick={() => setAssistantId(assistant.id)}
+                    onClick={() => handleAssistantSelect(assistant)}
                   >
                     {assistant.name ? assistant.name : assistant.id}
                   </button>
@@ -95,10 +147,26 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
               </div>
             </div>
             <button type="submit" disabled={!isAssistantSelected}>
-              Envoyer
+              Discuter
             </button>
           </form>
         </div>
+        {selectedVectorId && (
+          <div className="files-container">
+            <h2>Files for Vector Store ID: {selectedVectorId}</h2>
+            <ul>
+              {files.length > 0 ? (
+                [...files].reverse().map((file, index) => (
+                  <li key={file.id}>
+                    {index}:{file.id}
+                  </li>
+                ))
+              ) : (
+                <li>No files found</li>
+              )}
+            </ul>
+          </div>
+        )}
       </div>
     </>
   );

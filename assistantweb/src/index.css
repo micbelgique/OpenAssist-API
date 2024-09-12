@@ -144,3 +144,12 @@ button:disabled:hover {
   background-color: #646cff40;
   color: white;
 }
+
+.source-link {
+  color: red;
+  text-decoration: none;
+  cursor: pointer;
+}
+.source-link:hover {
+  text-decoration: underline;
+}
