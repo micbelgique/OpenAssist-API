@@ -35,7 +35,7 @@ function App() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [runId, setRunId] = useState<string | null>(null);
-  const [threadId, setThreadId] = useState<string>(""); // Now we initialize it here
+  const [threadId, setThreadId] = useState<string>("");
 
   useEffect(() => {
     scrollToBottom();
@@ -47,7 +47,7 @@ function App() {
 
   const createThreadAndRun = async (): Promise<string | null> => {
     if (!apiKey || !assistantId) return null;
-
+  
     setIsLoading(true); // Start loading
     try {
       const response = await axios.post(
@@ -55,9 +55,7 @@ function App() {
         {
           assistant_id: assistantId,
           thread: {
-            messages: [
-              { role: "user", content: "présente toi." }, // Initial message, can be customized
-            ],
+            messages: [{ role: "user", content: "présente toi." }],
           },
         },
         {
@@ -68,31 +66,30 @@ function App() {
           },
         }
       );
-
+  
+      console.log("Response from thread creation:", response.data); // Debugging log
+  
       const newThreadId = response.data.thread_id;
       const newRunId = response.data.id;
-
-      // Set new threadId and runId
-      setThreadId(newThreadId);
-      setRunId(newRunId);
-
-      checkRunStatus(newRunId); // Check run status
-
-      return newThreadId; // Return new threadId for further use
+  
+      if (newThreadId && newRunId) {
+        setThreadId(newThreadId);
+        setRunId(newRunId);
+        checkRunStatus(newRunId); // Check the status without awaiting it
+        return newThreadId;
+      } else {
+        console.error("Thread ID or Run ID is missing in the response");
+        return null;
+      }
     } catch (error) {
-      console.error(
-        "Erreur lors de la création et l'exécution du thread:",
-        error
-      );
+      console.error("Erreur lors de la création et l'exécution du thread:", error);
       return null;
-    } finally {
-      setIsLoading(false); // End loading
     }
   };
-
+  
   const checkRunStatus = async (runId: string) => {
     if (!apiKey || !threadId) return;
-
+  
     try {
       const response = await axios.get(
         `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
@@ -104,42 +101,46 @@ function App() {
           },
         }
       );
-
+  
       const runStatus = response.data.status;
-
+  
       if (runStatus === "completed") {
-        fetchMessages(); // Fetch messages only if the run is completed
-        setIsLoading(false); // End loading when completed
+        await fetchMessages(); // Fetch messages only once when completed
       } else if (runStatus === "failed" || runStatus === "expired") {
         console.error("Le run a échoué ou a expiré.");
-        setIsLoading(false); // End loading on failure or expiration
       } else {
-        setTimeout(() => checkRunStatus(runId), 2000); // Retry after 2 seconds
+        setTimeout(() => checkRunStatus(runId), 1000); // Retry checking every second
       }
     } catch (error) {
       console.error("Erreur lors de la vérification du statut du run:", error);
-      setIsLoading(false); // Ensure loading stops on error
+    } finally {
+      setIsLoading(false); // Always stop loading after check
     }
   };
+  
 
   const handleSubmitConfig = async () => {
     setFormVisible(false);
-    const newThreadId = await createThreadAndRun();
-    if (newThreadId) {
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+    const newThreadId = await createThreadAndRun(); // Await and receive newThreadId
+    if (newThreadId !== null) {
+      setIsLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       console.log("Thread ID créé:", newThreadId);
-      fetchMessages();
+      setThreadId(newThreadId);
+      fetchMessages(newThreadId);
+      setIsLoading(false);
     } else {
       console.error("Erreur: Thread ID non créé.");
     }
   };
 
-  const fetchMessages = async () => {
-    if (!apiKey || !threadId) return;
+  const fetchMessages = async (threadIdParam?: string) => {
+    const activeThreadId = threadIdParam || threadId; // Use the passed threadId or fallback to state
+    if (!apiKey || !activeThreadId) return;
 
     try {
       const response = await axios.get(
-        `https://api.openai.com/v1/threads/${threadId}/messages`,
+        `https://api.openai.com/v1/threads/${activeThreadId}/messages`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -148,23 +149,24 @@ function App() {
           },
         }
       );
+
       const filteredMessages = response.data.data.filter(
         (message: { role: string }) =>
           message.role === "user" || message.role === "assistant"
       );
+
       setMessages(filteredMessages.reverse());
     } catch (error) {
       console.error("Erreur lors de la récupération des messages:", error);
     }
   };
 
-
   const runThreadAfterMessage = async () => {
     if (!apiKey || !assistantId || !threadId) return;
-  
+
     try {
       setIsLoading(true); // Start loading
-  
+
       const response = await axios.post(
         `https://api.openai.com/v1/threads/${threadId}/runs`,
         {
@@ -178,7 +180,7 @@ function App() {
           },
         }
       );
-  
+
       const newRunId = response.data.id; // Nouveau Run ID
       setRunId(newRunId); // Mise à jour du Run ID
       checkRunStatus(newRunId); // Vérifier le statut du run
@@ -186,21 +188,18 @@ function App() {
       console.error("Erreur lors de la création et l'exécution du run:", error);
     }
   };
-  
 
   const postMessage = async (messageContent: string) => {
     if (!apiKey || !threadId) return;
   
-    // Ajoutez immédiatement le message de l'utilisateur aux messages
     const userMessage = {
-      id: `temp-${Date.now()}`, // Un ID temporaire unique pour le message de l'utilisateur
+      id: `temp-${Date.now()}`,
       role: "user",
       content: [{ text: { value: messageContent } }],
     };
   
     setMessages((prevMessages) => [...prevMessages, userMessage]);
-  
-    setIsLoading(true); // Start loading for the assistant's response
+    setIsLoading(true); // Start loading
   
     try {
       await axios.post(
@@ -218,23 +217,18 @@ function App() {
         }
       );
   
-      await runThreadAfterMessage(); 
-  
-    
-      await fetchMessages();
+      await runThreadAfterMessage();
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
     } finally {
-      setIsLoading(false); 
+      setIsLoading(false); // End loading after all actions
     }
   };
   
-  
-
   const handleSubmitMessage = async (event: React.FormEvent) => {
-    fetchMessages();
     event.preventDefault();
     if (userMessage.trim() === "") return; // Prevent sending empty messages
+  
     await postMessage(userMessage); // Send the user message
     setUserMessage(""); // Clear input after sending the message
   };
@@ -292,70 +286,71 @@ function App() {
             square
           >
             <List
-  sx={{
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    gap: 1,
-    margin: 5,
-  }}
->
-  {/* Filtrer les messages pour exclure le premier message de l'utilisateur */}
-  {messages
-    .filter((message, index, array) => {
-      // Trouver le premier message de l'utilisateur
-      const firstUserMessageIndex = array.findIndex(
-        (msg) => msg.role === "user"
-      );
-      // Exclure le premier message de l'utilisateur de l'affichage
-      return !(message.role === "user" && index === firstUserMessageIndex);
-    })
-    .map((message) => (
-      <ListItem
-        key={message.id || Math.random()}
-        sx={{
-          display: "flex",
-          justifyContent:
-            message.role === "user" ? "flex-end" : "flex-start",
-          padding: "10px 0",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent:
-              message.role === "user" ? "flex-end" : "flex-start",
-            margin: 1,
-          }}
-        >
-          <ListItemText
-            primary={
-              <Typography
-                variant="body1"
-                component="div"
-                sx={{
-                  backgroundColor:
-                    message.role === "user" ? "#646cff" : "#333333",
-                  padding: "8px 12px",
-                  borderRadius: "12px",
-                  maxWidth: "80%",
-                  wordWrap: "break-word",
-                  color: "#fff",
-                }}
-              >
-                <ReactMarkdown>
-                  {message.content?.[0]?.text?.value ||
-                    "Message indisponible"}
-                </ReactMarkdown>
-              </Typography>
-            }
-          />
-        </Box>
-      </ListItem>
-    ))}
-  <div ref={messagesEndRef} />
-</List>
-
+              sx={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                margin: 5,
+              }}
+            >
+              {/* Filtrer les messages pour exclure le premier message de l'utilisateur */}
+              {messages
+                .filter((message, index, array) => {
+                  // Trouver le premier message de l'utilisateur
+                  const firstUserMessageIndex = array.findIndex(
+                    (msg) => msg.role === "user"
+                  );
+                  // Exclure le premier message de l'utilisateur de l'affichage
+                  return !(
+                    message.role === "user" && index === firstUserMessageIndex
+                  );
+                })
+                .map((message) => (
+                  <ListItem
+                    key={message.id || Math.random()}
+                    sx={{
+                      display: "flex",
+                      justifyContent:
+                        message.role === "user" ? "flex-end" : "flex-start",
+                      padding: "10px 0",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent:
+                          message.role === "user" ? "flex-end" : "flex-start",
+                        margin: 1,
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Typography
+                            variant="body1"
+                            component="div"
+                            sx={{
+                              backgroundColor:
+                                message.role === "user" ? "#646cff" : "#333333",
+                              padding: "8px 12px",
+                              borderRadius: "12px",
+                              maxWidth: "80%",
+                              wordWrap: "break-word",
+                              color: "#fff",
+                            }}
+                          >
+                            <ReactMarkdown>
+                              {message.content?.[0]?.text?.value ||
+                                "Message indisponible"}
+                            </ReactMarkdown>
+                          </Typography>
+                        }
+                      />
+                    </Box>
+                  </ListItem>
+                ))}
+              <div ref={messagesEndRef} />
+            </List>
           </Box>
           <Divider />
           {isLoading ? (
@@ -400,21 +395,6 @@ function App() {
                 }}
               >
                 <NorthIcon />
-              </Button>
-
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={fetchMessages}
-                sx={{
-                  borderRadius: 1,
-                  padding: "8px 16px",
-                  marginLeft: 2,
-                  width: 100,
-                  backgroundColor: "#646cff",
-                }}
-              >
-                Refresh
               </Button>
             </Box>
           )}
