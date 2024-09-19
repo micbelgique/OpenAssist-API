@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import axios from "axios";
+import Footer from "./Footer";
 import {
   Box,
   Button,
@@ -90,6 +91,12 @@ function App() {
     }
   };
 
+  const handleFilesUpdate = (
+    files: { id: string; created_at: number; vector_store_id: string }[]
+  ) => {
+    console.log("Files updated:", files);
+  };
+
   const checkRunStatus = async (runId: string) => {
     if (!apiKey || !threadId) return;
 
@@ -175,8 +182,6 @@ function App() {
     );
   };
 
-  
-
   const runThreadAfterMessage = async () => {
     if (!apiKey || !assistantId || !threadId) return;
 
@@ -215,7 +220,7 @@ function App() {
     };
 
     setMessages((prevMessages) => [...prevMessages, userMessage]);
-    setIsLoading(true); // Start loading
+    setIsLoading(true); // Start loading while sending the message
 
     try {
       await axios.post(
@@ -237,7 +242,7 @@ function App() {
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
     } finally {
-      setIsLoading(false); // End loading after all actions
+      setIsLoading(false); // Stop loading after the message has been sent
     }
   };
 
@@ -276,6 +281,7 @@ function App() {
           setApiKey={setApiKey}
           setAssistantId={setAssistantId}
           onSubmit={handleSubmitConfig}
+          onFilesUpdate={handleFilesUpdate} // Pass the callback here
         />
       ) : (
         <>
@@ -417,6 +423,7 @@ function App() {
           )}
         </>
       )}
+      <Footer />
     </Box>
   );
 }

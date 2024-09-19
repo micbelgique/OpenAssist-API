@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 
+
 interface ConfigFormProps {
   apiKey: string;
   assistantId: string;
   setApiKey: (key: string) => void;
   setAssistantId: (id: string) => void;
   onSubmit: (vectorId: string | null) => void;
+  onFilesUpdate: (files: { id: string; created_at: number; vector_store_id: string }[]) => void; // Add this line
 }
+
+
 
 const ConfigForm: React.FC<ConfigFormProps> = ({
   apiKey,
@@ -14,6 +18,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
   setApiKey,
   setAssistantId,
   onSubmit,
+  onFilesUpdate, 
 }) => {
   const [assistants, setAssistants] = useState<
     { id: string; name: string | null; tool_resources?: { file_search?: { vector_store_ids?: string[] } } }[]
@@ -61,19 +66,22 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
           },
         }
       );
-
+  
       if (!response.ok) {
         throw new Error("Failed to fetch files");
       }
-
+  
       const data = await response.json();
       setFiles(data.data);
       console.log("Files fetched:", data.data);
+  
+      // Call the callback to update the parent component
+      onFilesUpdate(data.data);
     } catch (error) {
       console.error("Error fetching files:", error);
     }
   };
-
+  
   useEffect(() => {
     if (apiKey) {
       fetchAssistants();
@@ -116,7 +124,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
   return (
     <>
       <div className="container">
-        <h1>OpenAssist</h1>
+      <h1>OpenAssist</h1>
       </div>
       <div className="container">
         <div className="form-container">
@@ -151,7 +159,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
             </button>
           </form>
         </div>
-        {selectedVectorId && (
+        {/* {selectedVectorId && (
           <div className="files-container">
             <h2>Files for Vector Store ID: {selectedVectorId}</h2>
             <ul>
@@ -166,8 +174,9 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
               )}
             </ul>
           </div>
-        )}
+        )} */}
       </div>
+      
     </>
   );
 };

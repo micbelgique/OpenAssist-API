@@ -145,11 +145,8 @@ button:disabled:hover {
   color: white;
 }
 
-.source-link {
-  color: red;
-  text-decoration: none;
-  cursor: pointer;
-}
-.source-link:hover {
-  text-decoration: underline;
+.footer {
+  flex-shrink: 0;
+  text-align: center;
+  height: "3rem";
 }
