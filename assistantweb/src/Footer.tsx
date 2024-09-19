@@ -11,7 +11,7 @@ export default function Footer() {
           padding: "0.1rem",
         }}
       >
-        Made by&nbsp; <Link href="https://bit.ly/GitHub-OpenAssist-API" underline="hover"><img src="MIC.png" alt="OpenAI logo" width={50} /></Link>
+        Made by&nbsp; <Link href="https://bit.ly/GitHub-OpenAssist-API" underline="hover"><img src="MIC.png" alt="Mic" width={50} /></Link>
       </Box>
     </footer>
   )
