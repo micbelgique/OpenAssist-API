@@ -35,7 +35,7 @@ function App() {
   const [userMessage, setUserMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
-  const [runId, setRunId] = useState<string | null>(null);
+  const [_runId, setRunId] = useState<string | null>(null);
   const [threadId, setThreadId] = useState<string>("");
 
   useEffect(() => {

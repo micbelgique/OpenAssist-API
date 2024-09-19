@@ -25,7 +25,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
   >([]);
   const [isAssistantSelected, setIsAssistantSelected] = useState<boolean>(!!assistantId);
   const [selectedVectorId, setSelectedVectorId] = useState<string | null>(null);
-  const [files, setFiles] = useState<{ id: string; created_at: number; vector_store_id: string }[]>([]);
+  const [_files, setFiles] = useState<{ id: string; created_at: number; vector_store_id: string }[]>([]);
   
   const fetchAssistants = async () => {
     try {
