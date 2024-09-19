@@ -46,6 +46,8 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const [isAssistantTyping, setIsAssistantTyping] = useState<boolean>(false);
+
   const createThreadAndRun = async (): Promise<string | null> => {
     if (!apiKey || !assistantId) return null;
 
@@ -146,7 +148,7 @@ function App() {
   const fetchMessages = async (threadIdParam?: string) => {
     const activeThreadId = threadIdParam || threadId; // Use the passed threadId or fallback to state
     if (!apiKey || !activeThreadId) return;
-
+  
     try {
       const response = await axios.get(
         `https://api.openai.com/v1/threads/${activeThreadId}/messages`,
@@ -155,18 +157,21 @@ function App() {
             "Content-Type": "application/json",
             "OpenAI-Beta": "assistants=v2",
             Authorization: `Bearer ${apiKey}`,
-          },
+          }
         }
       );
-
+  
       const filteredMessages = response.data.data.filter(
         (message: { role: string }) =>
           message.role === "user" || message.role === "assistant"
       );
-
+  
       setMessages(filteredMessages.reverse());
     } catch (error) {
       console.error("Erreur lors de la récupération des messages:", error);
+    } finally {
+      setIsLoading(false);
+      setIsAssistantTyping(false); // Hide typing indicator once message is received
     }
   };
 
@@ -184,10 +189,11 @@ function App() {
 
   const runThreadAfterMessage = async () => {
     if (!apiKey || !assistantId || !threadId) return;
-
+  
     try {
       setIsLoading(true); // Start loading
-
+      setIsAssistantTyping(true); // Display typing indicator
+  
       const response = await axios.post(
         `https://api.openai.com/v1/threads/${threadId}/runs`,
         {
@@ -198,10 +204,10 @@ function App() {
             "Content-Type": "application/json",
             "OpenAI-Beta": "assistants=v2",
             Authorization: `Bearer ${apiKey}`,
-          },
+          }
         }
       );
-
+  
       const newRunId = response.data.id; // Nouveau Run ID
       setRunId(newRunId); // Mise à jour du Run ID
       checkRunStatus(newRunId); // Vérifier le statut du run
@@ -242,7 +248,8 @@ function App() {
     } catch (error) {
       console.error("Erreur lors de l'envoi du message:", error);
     } finally {
-      setIsLoading(false); // Stop loading after the message has been sent
+       // Stop loading after the message has been sent
+       console.log("Message envoyé avec succès");
     }
   };
 
@@ -306,74 +313,99 @@ function App() {
             elevation={0}
             square
           >
-            <List
+            <List>
+  {messages
+    .filter((message, index, array) => {
+      const firstUserMessageIndex = array.findIndex(
+        (msg) => msg.role === "user"
+      );
+      return !(message.role === "user" && index === firstUserMessageIndex);
+    })
+    .map((message) => (
+      <ListItem
+        key={message.id || Math.random()}
+        sx={{
+          display: "flex",
+          justifyContent:
+            message.role === "user" ? "flex-end" : "flex-start",
+          padding: "10px 0",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent:
+              message.role === "user" ? "flex-end" : "flex-start",
+            margin: 1,
+          }}
+        >
+          <ListItemText
+            primary={
+              <Typography
+                variant="body1"
+                component="div"
+                sx={{
+                  backgroundColor:
+                    message.role === "user" ? "#646cff" : "#333333",
+                  padding: "8px 12px",
+                  borderRadius: "12px",
+                  maxWidth: "80%",
+                  wordWrap: "break-word",
+                  color: "#fff",
+                }}
+              >
+                <ReactMarkdown>
+                  {formatMessageContent(
+                    message.content?.[0]?.text?.value || "Message indisponible"
+                  )}
+                </ReactMarkdown>
+              </Typography>
+            }
+          />
+        </Box>
+      </ListItem>
+    ))}
+
+  {/* Afficher le message temporaire pendant que l'assistant est en train de répondre */}
+  {isAssistantTyping && (
+    <ListItem
+      sx={{
+        display: "flex",
+        justifyContent: "flex-start",
+        padding: "10px 0",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-start",
+          margin: 1,
+        }}
+      >
+        <ListItemText
+          primary={
+            <Typography
+              variant="body1"
+              component="div"
               sx={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-                margin: 5,
+                backgroundColor: "#333333",
+                padding: "8px 12px",
+                borderRadius: "12px",
+                maxWidth: "80%",
+                wordWrap: "break-word",
+                color: "#fff",
               }}
             >
-              {/* Filtrer les messages pour exclure le premier message de l'utilisateur */}
-              {messages
-                .filter((message, index, array) => {
-                  // Trouver le premier message de l'utilisateur
-                  const firstUserMessageIndex = array.findIndex(
-                    (msg) => msg.role === "user"
-                  );
-                  // Exclure le premier message de l'utilisateur de l'affichage
-                  return !(
-                    message.role === "user" && index === firstUserMessageIndex
-                  );
-                })
-                .map((message) => (
-                  <ListItem
-                    key={message.id || Math.random()}
-                    sx={{
-                      display: "flex",
-                      justifyContent:
-                        message.role === "user" ? "flex-end" : "flex-start",
-                      padding: "10px 0",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent:
-                          message.role === "user" ? "flex-end" : "flex-start",
-                        margin: 1,
-                      }}
-                    >
-                      <ListItemText
-                        primary={
-                          <Typography
-                            variant="body1"
-                            component="div"
-                            sx={{
-                              backgroundColor:
-                                message.role === "user" ? "#646cff" : "#333333",
-                              padding: "8px 12px",
-                              borderRadius: "12px",
-                              maxWidth: "80%",
-                              wordWrap: "break-word",
-                              color: "#fff",
-                            }}
-                          >
-                            <ReactMarkdown>
-                              {formatMessageContent(
-                                message.content?.[0]?.text?.value ||
-                                  "Message indisponible"
-                              )}
-                            </ReactMarkdown>
-                          </Typography>
-                        }
-                      />
-                    </Box>
-                  </ListItem>
-                ))}
-              <div ref={messagesEndRef} />
-            </List>
+              L'assistant est en train de répondre...
+            </Typography>
+          }
+        />
+      </Box>
+    </ListItem>
+  )}
+  <div ref={messagesEndRef} />
+</List>
+
           </Box>
           <Divider />
           {isLoading ? (
