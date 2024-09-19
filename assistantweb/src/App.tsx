@@ -175,7 +175,7 @@ function App() {
     // Exemple de formatage simple. Adapte selon le format de tes références.
     return content.replace(
       /【(\d+):(\d+)†source】/g,
-      (match, docId, sectionId) => {
+      (_match, docId, sectionId) => {
         // Remplacer par une version lisible. Adapte cela en fonction de la structure des documents.
         return ` (Document ${docId}, section ${sectionId})`;
       }
