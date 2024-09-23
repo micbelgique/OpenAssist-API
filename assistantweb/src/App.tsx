@@ -50,7 +50,7 @@ function App() {
 
   const createThreadAndRun = async (): Promise<string | null> => {
     if (!apiKey || !assistantId) return null;
-
+  
     setIsLoading(true); // Start loading
     try {
       const response = await axios.post(
@@ -69,16 +69,22 @@ function App() {
           },
         }
       );
-
+  
       console.log("Response from thread creation:", response.data); // Debugging log
-
       const newThreadId = response.data.thread_id;
       const newRunId = response.data.id;
-
+      
       if (newThreadId && newRunId) {
-        setThreadId(newThreadId);
-        setRunId(newRunId);
-        checkRunStatus(newRunId); // Check the status without awaiting it
+        // Utiliser la valeur immédiatement dans les logs ou autres fonctions
+        console.log("new threadId:", newThreadId);
+        console.log("new runId:", newRunId);
+  
+        setThreadId(newThreadId); // Ceci est toujours asynchrone
+        setRunId(newRunId);       // Ceci est toujours asynchrone
+  
+        // Passer directement newThreadId ici, au lieu de threadId qui n'est pas encore à jour
+        checkRunStatus(newRunId, newThreadId);
+  
         return newThreadId;
       } else {
         console.error("Thread ID or Run ID is missing in the response");
@@ -90,8 +96,11 @@ function App() {
         error
       );
       return null;
+    } finally {
+      setIsLoading(false); // Stop loading
     }
   };
+  
 
   const handleFilesUpdate = (
     files: { id: string; created_at: number; vector_store_id: string }[]
@@ -99,43 +108,50 @@ function App() {
     console.log("Files updated:", files);
   };
 
-  const checkRunStatus = async (runId: string) => {
-    if (!apiKey || !threadId) return;
-
+  const checkRunStatus = async (runId: string, passedThreadId?: string) => {
+    const currentThreadId = passedThreadId || threadId; // Si threadId n'est pas encore mis à jour, utilisez passedThreadId
+    console.log("Checking run status...");
+    console.log("threadId:", currentThreadId); // Cela devrait maintenant afficher la bonne valeur
+  
+    if (!apiKey || !currentThreadId) return;
+  
     try {
       const response = await axios.get(
-        `https://api.openai.com/v1/threads/${threadId}/runs/${runId}`,
+        `https://api.openai.com/v1/threads/${currentThreadId}/runs/${runId}`,
         {
           headers: {
             "Content-Type": "application/json",
             "OpenAI-Beta": "assistants=v2",
             Authorization: `Bearer ${apiKey}`,
-          },
+          }
         }
       );
-
+  
       const runStatus = response.data.status;
-
+      console.log("Run status:", runStatus);
+  
       if (runStatus === "completed") {
-        await fetchMessages(); // Fetch messages only once when completed
-      } else if (runStatus === "failed" || runStatus === "expired") {
-        console.error("Le run a échoué ou a expiré.");
-      } else {
-        setTimeout(() => checkRunStatus(runId), 1000); // Retry checking every second
+        console.log("The run has completed successfully.");
+        await fetchMessages(currentThreadId); // Utiliser le threadId correct
+      } else if (runStatus === "failed") {
+        console.error("The run has failed");
+      } else if (runStatus === "queued" || runStatus === "in_progress") {
+        console.log("Retrying to check run status...");
+        setTimeout(() => checkRunStatus(runId, currentThreadId), 50000); // Réessayez en passant le bon threadId
       }
     } catch (error) {
-      console.error("Erreur lors de la vérification du statut du run:", error);
-    } finally {
-      setIsLoading(false); // Always stop loading after check
+      console.error("Error while checking run status:", error);
     }
   };
+  
+  
 
   const handleSubmitConfig = async () => {
     setFormVisible(false);
     const newThreadId = await createThreadAndRun(); // Await and receive newThreadId
     if (newThreadId !== null) {
       setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       console.log("Thread ID créé:", newThreadId);
       setThreadId(newThreadId);
       fetchMessages(newThreadId);
@@ -160,6 +176,7 @@ function App() {
           }
         }
       );
+      console.log("Messages fetched:", response.data.data); // Add a log here
   
       const filteredMessages = response.data.data.filter(
         (message: { role: string }) =>
@@ -168,12 +185,13 @@ function App() {
   
       setMessages(filteredMessages.reverse());
     } catch (error) {
-      console.error("Erreur lors de la récupération des messages:", error);
+      console.error("Error while fetching messages:", error);
     } finally {
       setIsLoading(false);
       setIsAssistantTyping(false); // Hide typing indicator once message is received
     }
   };
+  
 
   //afficher les messages
   const formatMessageContent = (content: string) => {
@@ -450,8 +468,9 @@ function App() {
                 }}
               >
                 <NorthIcon />
-              </Button>
+              </Button>       
             </Box>
+            
           )}
         </>
       )}

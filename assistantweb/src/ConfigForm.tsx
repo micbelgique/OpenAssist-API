@@ -159,12 +159,12 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
             </button>
           </form>
         </div>
-        {/* {selectedVectorId && (
+         {selectedVectorId && (
           <div className="files-container">
             <h2>Files for Vector Store ID: {selectedVectorId}</h2>
             <ul>
-              {files.length > 0 ? (
-                [...files].reverse().map((file, index) => (
+              {_files.length > 0 ? (
+                [..._files].reverse().map((file, index) => (
                   <li key={file.id}>
                     {index}:{file.id}
                   </li>
@@ -174,7 +174,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
               )}
             </ul>
           </div>
-        )} */}
+        )} 
       </div>
       
     </>
