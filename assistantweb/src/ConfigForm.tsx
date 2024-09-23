@@ -159,7 +159,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
             </button>
           </form>
         </div>
-         {selectedVectorId && (
+         {/* {selectedVectorId && (
           <div className="files-container">
             <h2>Files for Vector Store ID: {selectedVectorId}</h2>
             <ul>
@@ -174,7 +174,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
               )}
             </ul>
           </div>
-        )} 
+        )}  */}
       </div>
       
     </>
