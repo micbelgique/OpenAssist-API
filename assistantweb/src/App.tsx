@@ -137,7 +137,7 @@ function App() {
         console.error("The run has failed");
       } else if (runStatus === "queued" || runStatus === "in_progress") {
         console.log("Retrying to check run status...");
-        setTimeout(() => checkRunStatus(runId, currentThreadId), 50000); // Réessayez en passant le bon threadId
+        setTimeout(() => checkRunStatus(runId, currentThreadId), 80000); // Réessayez en passant le bon threadId
       }
     } catch (error) {
       console.error("Error while checking run status:", error);
@@ -182,6 +182,8 @@ function App() {
         (message: { role: string }) =>
           message.role === "user" || message.role === "assistant"
       );
+
+      
   
       setMessages(filteredMessages.reverse());
     } catch (error) {
@@ -332,14 +334,21 @@ function App() {
             square
           >
             <List>
-  {messages
-    .filter((message, index, array) => {
-      const firstUserMessageIndex = array.findIndex(
-        (msg) => msg.role === "user"
-      );
-      return !(message.role === "user" && index === firstUserMessageIndex);
-    })
-    .map((message) => (
+            {messages
+  .filter((message, index, array) => {
+    const firstUserMessageIndex = array.findIndex(
+      (msg) => msg.role === "user"
+    );
+    return !(message.role === "user" && index === firstUserMessageIndex);
+  })
+  .map((message) => {
+    // Vérifie si le contenu du message n'est pas vide avant l'affichage
+    const messageContent = message.content?.[0]?.text?.value || "";
+    if (!messageContent.trim()) {
+      return null; // Ne pas afficher les messages vides
+    }
+
+    return (
       <ListItem
         key={message.id || Math.random()}
         sx={{
@@ -382,7 +391,8 @@ function App() {
           />
         </Box>
       </ListItem>
-    ))}
+      );
+    })}
 
   {/* Afficher le message temporaire pendant que l'assistant est en train de répondre */}
   {isAssistantTyping && (
