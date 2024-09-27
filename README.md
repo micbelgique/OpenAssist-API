@@ -8,9 +8,9 @@ Le projet a pour objectif de vous donner la possibilté d'utiliser directement v
 
 - Télechargez le projet
 
-- installer les dépendances 
+- Installez les dépendances 
 
-- lancer le projet 
+- Lancez le projet 
 
 
 ## Demo
