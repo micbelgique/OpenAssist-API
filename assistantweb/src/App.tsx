@@ -137,7 +137,7 @@ function App() {
         console.error("The run has failed");
       } else if (runStatus === "queued" || runStatus === "in_progress") {
         console.log("Retrying to check run status...");
-        setTimeout(() => checkRunStatus(runId, currentThreadId), 80000); // Réessayez en passant le bon threadId
+        setTimeout(() => checkRunStatus(runId, currentThreadId), 3000); // Réessayez en passant le bon threadId
       }
     } catch (error) {
       console.error("Error while checking run status:", error);
@@ -151,7 +151,7 @@ function App() {
     const newThreadId = await createThreadAndRun(); // Await and receive newThreadId
     if (newThreadId !== null) {
       setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       console.log("Thread ID créé:", newThreadId);
       setThreadId(newThreadId);
       fetchMessages(newThreadId);

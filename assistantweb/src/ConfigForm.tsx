@@ -130,7 +130,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({
         <div className="form-container">
           <form onSubmit={handleSubmit} className="config-form">
             <label>
-              <span>API Key:</span>
+              <span>Clef OpenAi :</span>
               <input
                 type="text"
                 value={apiKey}
